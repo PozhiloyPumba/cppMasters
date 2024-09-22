@@ -5,16 +5,17 @@
 #include <algorithm>
 #include <iterator>
 #include "tokens.hpp"
+#include "lexer.hpp"
 
-extern Lexem yylex(void);
-extern void scan_string(const char* str);
+namespace TestQual {
 
 bool testqual(const std::string &a, const std::string &b) {
     auto parseToLexem = [](const auto &str) {
         std::vector<Lexem> tokens;
-        scan_string(str.data());
+        std::istringstream inSS(str);
+        Lexer l(inSS);
         Lexem token;
-        while((token = yylex()) != Lexem::END_OF_INPUT) {
+        while((token = l.get_next_token()) != Lexem::END_OF_INPUT) {
             tokens.push_back(token);
         }
 
@@ -37,11 +38,11 @@ bool testqual(const std::string &a, const std::string &b) {
             }
         }
     };
-    auto cvDecompose = [checkArrayCorrectPlace](const auto &tokens) {
+    auto cvDecompose = [&checkArrayCorrectPlace](const auto &tokens) {
         int n = std::count(tokens.begin(), tokens.end(), Lexem::POINTER);
-
+        int arrayN = std::count(tokens.begin(), tokens.end(), Lexem::ARRAY);
         checkArrayCorrectPlace(tokens);
-        std::vector<bool> haveCV(n+1+std::count(tokens.begin(), tokens.end(), Lexem::ARRAY), false);
+        std::vector<bool> haveCV(n+1+arrayN, false);
         auto cvIt = haveCV.begin();
         bool hasChar = false;
         for (auto it = tokens.rbegin(), end = tokens.rend(); it != end; ++it) {
@@ -62,11 +63,13 @@ bool testqual(const std::string &a, const std::string &b) {
         }
         if((tokens[0] != Lexem::CHAR) && (tokens[0] != Lexem::CONST || tokens[1] != Lexem::CHAR)) 
             throw std::runtime_error("It is not a const char or char type");
-        return haveCV;
+        return std::make_pair(haveCV, arrayN);
     };
 
-    auto cvFirst = cvDecompose(parseToLexem(a));
-    auto cvSecond = cvDecompose(parseToLexem(b));
+    const auto tokenFirst = parseToLexem(a);
+    const auto tokenSecond = parseToLexem(b);
+    const auto [cvFirst, arrayCountFirst] = cvDecompose(tokenFirst);
+    const auto [cvSecond, arrayCountSecond] = cvDecompose(tokenSecond);
 
     auto testSimilar = [](const auto &first, const auto &second) {
         return first.size() == second.size();
@@ -86,8 +89,15 @@ bool testqual(const std::string &a, const std::string &b) {
                 return false;
         return true;
     };
-    return  testSimilar(cvFirst, cvSecond) && 
+    if(arrayCountFirst > 1)
+        throw std::runtime_error("Uncorrect first type (Too many empty brackets)");
+    if(arrayCountSecond > 1)
+        throw std::runtime_error("Uncorrect second type (Too many empty brackets)");
+
+    return  (arrayCountSecond == 0) &&
+            testSimilar(cvFirst, cvSecond) && 
             checkConversibleCV(cvFirst, cvSecond);
+}
 }
 
 int main(int argc, char *argv[]) {
@@ -95,6 +105,6 @@ int main(int argc, char *argv[]) {
         throw std::runtime_error("bad command args\n Usage: ./testqual \"first type\" \"second type\"");
     }
 
-    std::cout << std::boolalpha << testqual(argv[1], argv[2]) << std::endl;
+    std::cout << std::boolalpha << TestQual::testqual(argv[1], argv[2]) << std::endl;
     return 0;
 }

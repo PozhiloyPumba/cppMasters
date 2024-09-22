@@ -1,12 +1,12 @@
-%option noyywrap
-%option noinput
+%option noyywrap c++ nodefault
+%option yyclass="Lexer"
+%option prefix="TestQual_"
 
 %{
-#include "tokens.hpp"
-#include <iostream>
-#include <string>
-
-#define YY_DECL Lexem yylex(void)
+    #include <iostream>
+    #include <string>
+    #include "lexer.hpp"
+    #include "tokens.hpp"
 %}
 
 %%
@@ -21,8 +21,3 @@
 .       { throw std::runtime_error("Unexpected lexem:" + std::string(yytext)); return Lexem::ERROR;}
 
 %%
-
-void scan_string(const char* str)
-{
-    yy_switch_to_buffer(yy_scan_string(str));
-}
