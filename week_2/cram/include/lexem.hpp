@@ -1,9 +1,11 @@
 #ifndef __TOKENS_HPP__
 #define __TOKENS_HPP__
 
+#include "genEnum.hpp"
+
 namespace CRAM {
 
-#define ENUM_MEMBERS(c) \
+#define ENUM_LEXEMS(c) \
     c(OP_BRACK) \
     c(CL_BRACK) \
     c(SEMICOLON) \
@@ -19,25 +21,9 @@ namespace CRAM {
     c(END_OF_INPUT) \
     c(ERROR)
 
-#define GEN_ENUM(e) e,
-
-enum class Lexem {
-    ENUM_MEMBERS(GEN_ENUM)
-};
-
-static const char *toString(Lexem l) {
-    switch(l) {
-
-#define ENUM_TO_STRING(e) \
-    case Lexem::e: return #e;
-
-    ENUM_MEMBERS(ENUM_TO_STRING)
-    default:;
-    }
-
-#undef ENUM_TO_STRING
-}
+CREATE_ENUM(Lexem, ENUM_LEXEMS);
 
 }
+
 
 #endif

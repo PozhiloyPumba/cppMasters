@@ -1,7 +1,7 @@
 #include "lexer.hpp"
 #include <fstream>
 #include <vector>
-#include "tokens.hpp"
+#include "lexem.hpp"
 
 int main(int argc, char *argv[]) {
     if(argc != 2) {
@@ -16,15 +16,10 @@ int main(int argc, char *argv[]) {
     }
     
     CRAM::Lexer l(f);
-    std::vector<CRAM::Lexem> tokens;
-
-    while((tokens = l.get_next_statement()), tokens.size()) {
-        std::cout << "next statement" << std::endl;
-        for(const auto token: tokens) {
-            std::cout << CRAM::toString(token) << std::endl;
-        }
-    }
-
+	l.read();
     f.close();
+
+	
+
     return 0;
 }

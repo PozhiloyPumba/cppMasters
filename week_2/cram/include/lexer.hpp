@@ -2,8 +2,10 @@
 #define __LEXER_HPP__
 
 #include <istream>
+#include <memory>
 #include <vector>
-#include "tokens.hpp"
+#include "lexem.hpp"
+#include "token.hpp"
 
 #if ! defined(yyFlexLexerOnce)
 #undef yyFlexLexer
@@ -17,11 +19,15 @@
 namespace CRAM {
 
 class Lexer : public yyFlexLexer {
+	virtual Lexem get_next_token();
+	bool readContent = false;
+	std::vector<std::vector<std::unique_ptr<Token>>> statements_;
+	std::vector<std::unique_ptr<Token>> get_next_statement();
+
 public:
     Lexer(std::istream &input): yyFlexLexer(input, std::cout) {}
-	virtual ~Lexer() {}
-	virtual Lexem get_next_token();
-	const std::vector<Lexem> get_next_statement();
+	virtual ~Lexer() = default;
+	void read();
 };
 
 }

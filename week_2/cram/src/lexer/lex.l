@@ -6,7 +6,7 @@
     #include <iostream>
     #include <string>
     #include "lexer.hpp"
-    #include "tokens.hpp"
+    #include "lexem.hpp"
 %}
 
 %%
