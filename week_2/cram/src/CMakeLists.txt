@@ -8,3 +8,6 @@ set(SOURCES
 
 add_library(lexer_lib ${SOURCES})
 target_include_directories(lexer_lib PUBLIC ${CMAKE_SOURCE_DIR}/${INCLUDE_DIR})
+
+add_library(interpreter_lib interpreter.cpp)
+target_link_libraries(interpreter_lib lexer_lib)

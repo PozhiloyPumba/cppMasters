@@ -15,9 +15,8 @@ namespace CRAM {
     c(NUMBER) \
     c(ASSIGN) \
     c(ADD) \
-    c(MINUS) \
-    c(MULT) \
-    c(DIV) \
+    c(SUB) \
+	c(EMPTY) \
     c(END_OF_INPUT) \
     c(ERROR)
 

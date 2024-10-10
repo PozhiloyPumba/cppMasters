@@ -22,12 +22,16 @@ class Lexer : public yyFlexLexer {
 	virtual Lexem get_next_token();
 	bool readContent = false;
 	std::vector<std::vector<std::unique_ptr<Token>>> statements_;
-	std::vector<std::unique_ptr<Token>> get_next_statement();
+	std::vector<std::unique_ptr<Token>> read_next_statement();
 
 public:
     Lexer(std::istream &input): yyFlexLexer(input, std::cout) {}
 	virtual ~Lexer() = default;
 	void read();
+	inline const std::vector<std::unique_ptr<Token>> &get_statement(size_t statementNum) const {
+		return statements_.at(statementNum);
+	};
+	inline size_t getStatementsCount() const { return statements_.size();};
 };
 
 }

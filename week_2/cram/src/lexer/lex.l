@@ -17,9 +17,7 @@
 "]"                         { return Lexem::CL_BRACK; }
 ";"                         { return Lexem::SEMICOLON; }
 "+"                         { return Lexem::ADD; }
-"-"                         { return Lexem::MINUS; }
-"*"                         { return Lexem::MULT; }
-"/"                         { return Lexem::DIV; }
+"-"                         { return Lexem::SUB; }
 "="                         { return Lexem::ASSIGN; }
 "input"                     { return Lexem::INPUT; }
 "print"                     { return Lexem::PRINT; }

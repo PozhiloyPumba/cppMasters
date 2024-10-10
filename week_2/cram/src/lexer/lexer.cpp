@@ -2,7 +2,7 @@
 
 namespace CRAM {
 
-std::vector<std::unique_ptr<Token>> Lexer::get_next_statement() {
+std::vector<std::unique_ptr<Token>> Lexer::read_next_statement() {
     std::vector<std::unique_ptr<Token>> tokens;
     CRAM::Lexem token;
     while(((token = get_next_token()) != Lexem::END_OF_INPUT) &&
@@ -14,10 +14,22 @@ std::vector<std::unique_ptr<Token>> Lexer::get_next_statement() {
 			case Lexem::NUMBER:
 				tokens.push_back(std::make_unique<Number>(std::atoi(yytext)));
 				break;
+			case Lexem::CL_BRACK:
+				if(	(tokens.size() >= 2) && 
+					(tokens[tokens.size() - 1]->getType() == Lexem::OP_BRACK) &&
+					((tokens[tokens.size() - 2]->getType() == Lexem::OP_BRACK) ||
+					 (tokens[tokens.size() - 2]->getType() == Lexem::VAR))) {
+					tokens.push_back(std::make_unique<Token>(Lexem::EMPTY));
+				}
 			default:
 				tokens.push_back(std::make_unique<Token>(token));
 		}
     }
+	if (token == Lexem::SEMICOLON) {
+		tokens.push_back(std::make_unique<Token>(Lexem::SEMICOLON));
+		// don't ask me why? but this very important
+		tokens.push_back(std::make_unique<Token>(Lexem::SEMICOLON));
+	}
     return tokens;
 }
 
@@ -27,10 +39,14 @@ void Lexer::read() {
 
     std::vector<std::unique_ptr<Token>> tokens;
 
-    while((tokens = get_next_statement()), tokens.size())
+    while((tokens = read_next_statement()), tokens.size()) {
+		if(tokens.back()->getType() != Lexem::SEMICOLON)
+			throw std::runtime_error("no semicolon at the end");
 		statements_.push_back(std::move(tokens));
+	}
 
 #ifndef NDEBUG
+	std::cout << "Lexer output:" << std::endl;
 	for(const auto &st: statements_) {
 		std::cout << "next" << std::endl;
 		for(const auto &n: st) {
