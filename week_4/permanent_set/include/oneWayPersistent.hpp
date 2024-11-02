@@ -6,8 +6,10 @@
 #include <vector>
 #include <algorithm>
 #include <set>
+#include <list>
 #include <optional>
 #include <functional>
+#include <type_traits>
 
 namespace persistent {
 
@@ -38,84 +40,90 @@ public:
     void insert(const T &val);
     bool undo();
     bool redo();
-    inline void dump() const {
-        const char *sep = "";
-        const auto &borderIt = tree_.upper_bound(*backlog_);
-        
-        auto curIt = tree_.begin();
-        for(;curIt != borderIt; ++curIt) {
-            std::cout << sep << *curIt;
-            sep = ", ";
+    void dump() const;
+};
+
+#include "oneWayPersistent_impl.cpp"
+
+template<>
+class Set<std::string> {
+    using strType = std::string;
+    struct Node;
+    struct Edge {
+        std::string label_;
+        Node *target_ = nullptr;
+    };
+    struct Node {
+        // list because of erasing
+        std::list<Edge> children_;
+        bool isTerminal = false;
+    };
+
+    std::vector<Node *> changesOld_;
+    std::vector<Node *> changesNew_;
+
+    Node *newRoot_ = nullptr;
+    Node *oldRoot_ = nullptr;
+    Node *root_ = new Node;
+
+    void dump(std::ostream &out, Node *root) const {
+        if (!root)
+            return;
+
+        out << "digraph tree {\n"
+                "rankdir = \"LR\"\n"
+                "node [fontsize=10, shape=box, height=0.5]\n"
+                "edge [fontsize=10]\n";
+
+        PrintNodeIntoGraphviz(root, out);
+        BuildConnectionsInGraphviz(root, out);
+
+        out << "}\n";
+    }
+
+    void PrintNodeIntoGraphviz(Node *curNode, std::ostream &out) const {
+        out << "\"" << curNode << "\" [label = \"";
+        out << curNode->isTerminal;
+        out << "\"]\n";
+
+        for (auto it = curNode->children_.begin(); it != curNode->children_.end(); ++it) {
+            Node *curChild = it->target_;
+            if (curChild)
+                PrintNodeIntoGraphviz(curChild, out);
+        }
+    }
+
+    void BuildConnectionsInGraphviz(Node *curNode, std::ostream &out) const {        
+        for (auto it = curNode->children_.begin(); it != curNode->children_.end(); ++it) {
+            Node *curChild = it->target_;
+            if (curChild)
+                out << "\"" << curNode << "\" -> \"" << curChild << "\" [label=\"" << it->label_ << "\"]\n";
         }
 
-        if(!isUndo && backlog_.has_value()) {
-            std::cout << sep << *backlog_;
-            sep = ", ";
+        for (auto it = curNode->children_.begin(); it != curNode->children_.end(); ++it) {
+            Node *curChild = it->target_;
+            if (curChild)
+                BuildConnectionsInGraphviz(curChild, out);
         }
+    }
+    void commit();
+    void cleanup(Node *curNode);
+ 
+public:
+    bool contains(const strType &val) const;
+    void remove(const strType &val);
+    void insert(const strType &val);
+    bool undo();
+    bool redo();
+    inline void dumpTree(std::ostream &out) const {dump(out, root_);}
 
-        for(const auto &end = tree_.end(); curIt != end; ++curIt) {
-            std::cout << sep << *curIt;
-            sep = ", ";
-        }
-        std::cout << std::endl;
+    ~Set(){
+        commit();
+        cleanup(root_);
     }
 };
 
-template<typename T>
-bool Set<T>::contains(const T &val) const {
-    bool treeSearch = tree_.find(val) != tree_.end();
-    if(!isUndo && backlog_.has_value()) {
-        return treeSearch || ((*backlog_) == val);
-    }
-
-    return treeSearch;
 }
 
-template<typename T>
-void Set<T>::remove(const T &val) {
-    if(!contains(val))
-        return;
-
-    if(backlog_.has_value())
-        lastOp(backlog_.value());
-    backlog_ = val;
-    lastOp = lastOpFunc[REMOVE];
-    isUndo = false;
-}
-
-template<typename T>
-void Set<T>::insert(const T &val) {
-    if(contains(val))
-        return;
-
-    if(backlog_.has_value())
-        lastOp(backlog_.value());
-    backlog_ = val;
-    lastOp = lastOpFunc[INSERT];
-    isUndo = false;
-}
-
-template<typename T>
-bool Set<T>::undo() {
-    if(isUndo)
-        return false;
-
-    prev = lastOp;
-    lastOp = lastOpFunc[INVALID];
-    isUndo = true;
-    return true; 
-}
-
-template<typename T>
-bool Set<T>::redo() {
-    if(!isUndo)
-        return false;
-
-    lastOp = prev;
-
-    isUndo = false;
-    return true; 
-}
-}
 
 #endif
