@@ -18,4 +18,3 @@ endif()
 
 set(INCLUDE_DIR include)
 add_subdirectory(samples)
-add_subdirectory(src)

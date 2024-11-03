@@ -1,4 +1,8 @@
-template<typename T>
+#include "oneWayPersistent.hpp"
+
+namespace persistent {
+
+template<is_not_string_class T>
 bool Set<T>::contains(const T &val) const {
     bool treeSearch = tree_.find(val) != tree_.end();
     if(!isUndo && backlog_.has_value()) {
@@ -8,7 +12,7 @@ bool Set<T>::contains(const T &val) const {
     return treeSearch;
 }
 
-template<typename T>
+template<is_not_string_class T>
 void Set<T>::remove(const T &val) {
     if(!contains(val))
         return;
@@ -20,7 +24,7 @@ void Set<T>::remove(const T &val) {
     isUndo = false;
 }
 
-template<typename T>
+template<is_not_string_class T>
 void Set<T>::insert(const T &val) {
     if(contains(val))
         return;
@@ -32,7 +36,7 @@ void Set<T>::insert(const T &val) {
     isUndo = false;
 }
 
-template<typename T>
+template<is_not_string_class T>
 bool Set<T>::undo() {
     if(isUndo)
         return false;
@@ -43,7 +47,7 @@ bool Set<T>::undo() {
     return true; 
 }
 
-template<typename T>
+template<is_not_string_class T>
 bool Set<T>::redo() {
     if(!isUndo)
         return false;
@@ -54,7 +58,7 @@ bool Set<T>::redo() {
     return true; 
 }
 
-template<typename T>
+template<is_not_string_class T>
 void Set<T>::dump() const {
     const char *sep = "";
     const auto &borderIt = tree_.upper_bound(*backlog_);
@@ -75,4 +79,6 @@ void Set<T>::dump() const {
         sep = ", ";
     }
     std::cout << std::endl;
+}
+
 }

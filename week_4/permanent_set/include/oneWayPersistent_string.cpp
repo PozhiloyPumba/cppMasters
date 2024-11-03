@@ -2,7 +2,8 @@
 
 namespace persistent {
 
-void Set<std::string>::commit() {    
+template<is_string_class T>
+void Set<T>::commit() {    
     if(root_ == newRoot_) {
         oldRoot_ = newRoot_;
         for(auto n: changesOld_)
@@ -17,13 +18,14 @@ void Set<std::string>::commit() {
     changesNew_.clear();
 }
 
-bool Set<std::string>::contains(const strType &val) const {
+template<is_string_class T>
+bool Set<T>::contains(const T &val) const {
     Node *traverseNode = root_;
     size_t elementsFound = 0;
     size_t len = val.length();
-    std::string_view v = std::string_view(val);
+    string_view v = string_view(val);
     while (traverseNode && elementsFound < len) {
-        std::string_view substr = v.substr(elementsFound, std::string::npos);
+        string_view substr = v.substr(elementsFound, T::npos);
 
         auto it = std::find_if(traverseNode->children_.begin(), traverseNode->children_.end(), 
             [&substr](Edge &edge){ return substr.starts_with(edge.label_);});
@@ -40,7 +42,9 @@ bool Set<std::string>::contains(const strType &val) const {
     return (traverseNode && traverseNode->isTerminal && (elementsFound == len));
 }
 
-void Set<std::string>::insert(const strType &val) {
+
+template<is_string_class T>
+void Set<T>::insert(const T &val) {
     if(contains(val)) {
         return;
     }
@@ -50,11 +54,11 @@ void Set<std::string>::insert(const strType &val) {
     Node *traverseNode = root_;
     size_t elementsFound = 0;
     size_t len = val.length();
-    std::string_view v = std::string_view(val);
+    string_view v = string_view(val);
 
     auto commonPrefix = [](auto &fst, auto &snd){
         auto impl = [](auto &a, auto &b){
-            return std::string_view(a.begin(), std::mismatch(a.begin(), a.end(), b.begin()).first);
+            return string_view(a.begin(), std::mismatch(a.begin(), a.end(), b.begin()).first);
         };
         if(fst.size() > snd.size()) return impl(snd, fst);
         return impl(fst, snd);
@@ -70,13 +74,13 @@ void Set<std::string>::insert(const strType &val) {
             copyTarget->target_ = tmp;
         }
 
-        std::string_view substr = v.substr(elementsFound, std::string::npos);
+        string_view substr = v.substr(elementsFound, T::npos);
 
         auto it = std::find_if(tmp->children_.begin(), tmp->children_.end(), 
             [&substr](Edge &edge){return substr.starts_with(edge.label_[0]);});
 
         if (it != tmp->children_.end()) {
-            std::string_view com = commonPrefix(substr, it->label_);
+            string_view com = commonPrefix(substr, it->label_);
             elementsFound += com.size();
             if(elementsFound == len) {
                 traverseNode = it->target_;
@@ -90,7 +94,7 @@ void Set<std::string>::insert(const strType &val) {
                 continue;
             }
             auto tmpNode = new Node;
-            Edge e{.label_ = std::string(it->label_.substr(com.size(), std::string::npos)), .target_ = it->target_};
+            Edge e{.label_ = T(it->label_.substr(com.size(), T::npos)), .target_ = it->target_};
             tmpNode->children_.push_back(e);
             it->label_ = com;
             it->target_ = tmpNode;
@@ -108,13 +112,14 @@ void Set<std::string>::insert(const strType &val) {
         traverseNode->isTerminal = true;
         return;
     }
-    Edge e{.label_ = std::string(v.substr(elementsFound, std::string::npos)), .target_ = new Node};
+    Edge e{.label_ = T(v.substr(elementsFound, T::npos)), .target_ = new Node};
     e.target_->isTerminal = true;
     traverseNode->children_.push_back(e);
     changesNew_.push_back(e.target_);
 }
 
-void Set<std::string>::remove(const strType &val) {
+template<is_string_class T>
+void Set<T>::remove(const T &val) {
     if(root_->children_.empty())
         return;
 
@@ -122,10 +127,10 @@ void Set<std::string>::remove(const strType &val) {
 
     Node *traverseNode = root_;
     Node *parent = root_;
-    std::list<Edge>::const_iterator e;
+    typename std::list<Edge>::const_iterator e;
     size_t elementsFound = 0;
     size_t len = val.length();
-    std::string_view v = std::string_view(val);
+    string_view v = string_view(val);
     Edge *copyTarget = nullptr;
 
     while (traverseNode && elementsFound < len) {
@@ -139,7 +144,7 @@ void Set<std::string>::remove(const strType &val) {
             copyTarget->target_ = tmp;
         }
 
-        std::string_view substr = v.substr(elementsFound, std::string::npos);
+        string_view substr = v.substr(elementsFound, T::npos);
 
         auto it = std::find_if(tmp->children_.begin(), tmp->children_.end(), 
             [&substr](Edge &edge){ return substr.starts_with(edge.label_);});
@@ -175,14 +180,16 @@ void Set<std::string>::remove(const strType &val) {
     return;
 }
 
-bool Set<std::string>::undo() {
+template<is_string_class T>
+bool Set<T>::undo() {
     if(root_ == oldRoot_)
         return false;
     root_ = oldRoot_?oldRoot_:root_;
     return true;
 }
 
-bool Set<std::string>::redo() {
+template<is_string_class T>
+bool Set<T>::redo() {
     if(root_ == newRoot_)
         return false;
 
@@ -190,7 +197,8 @@ bool Set<std::string>::redo() {
     return true;
 }
 
-void Set<std::string>::cleanup(Node *curNode) {
+template<is_string_class T>
+void Set<T>::cleanup(Node *curNode) {
     for (auto it = curNode->children_.begin(); it != curNode->children_.end(); ++it) {
         Node *curChild = it->target_;
         if (curChild)

@@ -13,8 +13,26 @@
 
 namespace persistent {
 
+namespace impl
+{
+    template<typename T>
+    inline constexpr bool is_string_class_decayed = false;
+
+    template<typename... T>
+    inline constexpr bool is_string_class_decayed<std::basic_string<T...>> = true;
+}
+
+template<typename T>
+concept is_string_class = impl::is_string_class_decayed<std::decay_t<T>>;
+template<typename T>
+concept is_not_string_class = !impl::is_string_class_decayed<std::decay_t<T>>;
+
 template<typename T>
 class Set final {
+};
+
+template<is_not_string_class T>
+class Set<T> final {
     bool isUndo = false;
     std::optional<T> backlog_;
     std::set<T> tree_;
@@ -43,14 +61,26 @@ public:
     void dump() const;
 };
 
-#include "oneWayPersistent_impl.cpp"
+template<is_string_class T>
+class Set<T> {
+    template<class>
+    struct Extract;
 
-template<>
-class Set<std::string> {
-    using strType = std::string;
+    template<template<class...> class V, class First, class... Rest>
+    struct Extract<V<First, Rest...>> {
+        using type = First;
+    };
+
+    template<class T_>
+    struct TestWrapper {
+        typename Extract<T_>::type extradata;
+    };
+
+    using string_view = std::basic_string_view<typename Extract<T>::type>;
+
     struct Node;
     struct Edge {
-        std::string label_;
+        T label_;
         Node *target_ = nullptr;
     };
     struct Node {
@@ -66,7 +96,8 @@ class Set<std::string> {
     Node *oldRoot_ = nullptr;
     Node *root_ = new Node;
 
-    void dump(std::ostream &out, Node *root) const {
+    template<typename Out>
+    void dump(Out &out, Node *root) const {
         if (!root)
             return;
 
@@ -81,7 +112,8 @@ class Set<std::string> {
         out << "}\n";
     }
 
-    void PrintNodeIntoGraphviz(Node *curNode, std::ostream &out) const {
+    template<typename Out>
+    void PrintNodeIntoGraphviz(Node *curNode, Out &out) const {
         out << "\"" << curNode << "\" [label = \"";
         out << curNode->isTerminal;
         out << "\"]\n";
@@ -93,7 +125,8 @@ class Set<std::string> {
         }
     }
 
-    void BuildConnectionsInGraphviz(Node *curNode, std::ostream &out) const {        
+    template<typename Out>
+    void BuildConnectionsInGraphviz(Node *curNode, Out &out) const {        
         for (auto it = curNode->children_.begin(); it != curNode->children_.end(); ++it) {
             Node *curChild = it->target_;
             if (curChild)
@@ -107,15 +140,18 @@ class Set<std::string> {
         }
     }
     void commit();
+
     void cleanup(Node *curNode);
  
 public:
-    bool contains(const strType &val) const;
-    void remove(const strType &val);
-    void insert(const strType &val);
+    bool contains(const T &val) const;
+    void remove(const T &val);
+    void insert(const T &val);
     bool undo();
     bool redo();
-    inline void dumpTree(std::ostream &out) const {dump(out, root_);}
+
+    template<typename Out>
+    inline void dumpTree(Out &out) const {dump(out, root_);}
 
     ~Set(){
         commit();
@@ -125,5 +161,7 @@ public:
 
 }
 
+#include "oneWayPersistent_notString.cpp"
+#include "oneWayPersistent_string.cpp"
 
 #endif
