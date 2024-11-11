@@ -102,7 +102,7 @@ auto operator/(const Value<D> &val, double coef) {
 
 template <typename D>
 auto operator/(double a, const Value<D> &b) {
-	Scalar tmp = a;
+	Scalar tmp(a);
 	return tmp / b;
 }
 
